@@ -2,7 +2,7 @@ import socket
 import threading
 import time
 import pyperclip
-
+# WORKS on TEXT
 HOST = "0.0.0.0"
 PORT = 5000
 BROADCAST_PORT = 6000

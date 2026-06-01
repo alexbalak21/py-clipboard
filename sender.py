@@ -1,7 +1,7 @@
 import socket
 import pyperclip
 import time
-
+# WORKS on TEXT
 BROADCAST_PORT = 6000
 receiver_ip = None
 receiver_port = None
