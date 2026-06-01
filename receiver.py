@@ -2,10 +2,13 @@ import socket
 import threading
 import time
 import pyperclip
-# WORKS on TEXT
+import tempfile
+import os
+
 HOST = "0.0.0.0"
 PORT = 5000
 BROADCAST_PORT = 6000
+
 
 # ---------------------------
 # UDP BROADCAST THREAD
@@ -34,18 +37,30 @@ def start_receiver():
         conn, addr = server.accept()
         print(f"Connection from {addr}")
 
-        chunks = []
-        while True:
-            data = conn.recv(4096)
-            if not data:
-                break
-            chunks.append(data)
+        header = b""
+        while b"\n\n" not in header:
+            header += conn.recv(1)
 
-        text = b"".join(chunks).decode("utf-8", errors="ignore")
+        header_text = header.decode()
+        lines = header_text.strip().split("\n")
+        data_type = lines[0].split(":")[1]
+        size = int(lines[1].split(":")[1])
 
-        if text:
+        data = b""
+        while len(data) < size:
+            data += conn.recv(4096)
+
+        if data_type == "TEXT":
+            text = data.decode("utf-8", errors="ignore")
             pyperclip.copy(text)
-            print(f"Received clipboard: {text}")
+            print(f"Received TEXT: {text}")
+
+        elif data_type == "IMAGE":
+            temp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+            temp.write(data)
+            temp.close()
+            print(f"Received IMAGE saved to: {temp.name}")
+            os.startfile(temp.name)  # auto-open image on Windows
 
         conn.close()
 

@@ -1,7 +1,10 @@
 import socket
 import pyperclip
 import time
-# WORKS on TEXT
+import subprocess
+import tempfile
+import os
+
 BROADCAST_PORT = 6000
 receiver_ip = None
 receiver_port = None
@@ -30,18 +33,53 @@ def discover_receiver():
 
 
 # ---------------------------
+# TRY TO GET IMAGE FROM CLIPBOARD (Windows)
+# ---------------------------
+def get_clipboard_image():
+    temp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+    temp.close()
+
+    try:
+        subprocess.run([
+            "powershell", "-command",
+            f"Add-Type -AssemblyName System.Windows.Forms;"
+            f"$img=[System.Windows.Forms.Clipboard]::GetImage();"
+            f"if ($img) {{$img.Save('{temp.name}')}}"
+        ], check=True)
+
+        if os.path.getsize(temp.name) > 0:
+            return temp.name
+        else:
+            os.remove(temp.name)
+            return None
+
+    except:
+        return None
+
+
+# ---------------------------
 # SEND CLIPBOARD
 # ---------------------------
 def send_clipboard():
-    text = pyperclip.paste()
+    img_path = get_clipboard_image()
 
-    if not text.strip():
-        return
+    if img_path:
+        with open(img_path, "rb") as f:
+            data = f.read()
+        os.remove(img_path)
+
+        header = f"TYPE:IMAGE\nSIZE:{len(data)}\n\n".encode()
+        payload = header + data
+
+    else:
+        text = pyperclip.paste().encode("utf-8")
+        header = f"TYPE:TEXT\nSIZE:{len(text)}\n\n".encode()
+        payload = header + text
 
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((receiver_ip, receiver_port))
-        s.sendall(text.encode("utf-8"))
+        s.sendall(payload)
         s.close()
         print("Clipboard sent.")
     except Exception as e:
@@ -58,8 +96,11 @@ print("Clipboard watcher running...")
 
 while True:
     current = pyperclip.paste()
-    if current != last_text:
+
+    # Always send if text changed OR image exists
+    if current != last_text or get_clipboard_image():
         last_text = current
         print("Detected new clipboard, sending...")
         send_clipboard()
+
     time.sleep(0.2)
