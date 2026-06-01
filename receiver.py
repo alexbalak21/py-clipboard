@@ -4,12 +4,12 @@ import time
 import pyperclip
 import tempfile
 import os
+import subprocess
 
 HOST = "0.0.0.0"
 PORT = 5000
 BROADCAST_PORT = 6000
 
-# WORKING WITH TEXT & IMAGES
 
 # ---------------------------
 # UDP BROADCAST THREAD
@@ -22,6 +22,18 @@ def broadcast_presence():
         msg = f"RECEIVER;PORT={PORT}".encode()
         sock.sendto(msg, ("255.255.255.255", BROADCAST_PORT))
         time.sleep(2)
+
+
+# ---------------------------
+# PUT IMAGE INTO WINDOWS CLIPBOARD
+# ---------------------------
+def set_clipboard_image(image_path):
+    subprocess.run([
+        "powershell", "-command",
+        f"Add-Type -AssemblyName System.Windows.Forms;"
+        f"$img=[System.Drawing.Image]::FromFile('{image_path}');"
+        f"[System.Windows.Forms.Clipboard]::SetImage($img)"
+    ], check=True)
 
 
 # ---------------------------
@@ -38,7 +50,7 @@ def start_receiver():
         conn, addr = server.accept()
         print(f"Connection from {addr}")
 
-        # Read header until blank line
+        # Read header
         header = b""
         while b"\n\n" not in header:
             header += conn.recv(1)
@@ -53,17 +65,25 @@ def start_receiver():
         while len(data) < size:
             data += conn.recv(4096)
 
+        # TEXT
         if data_type == "TEXT":
             text = data.decode("utf-8", errors="ignore")
             pyperclip.copy(text)
             print(f"Received TEXT: {text}")
 
+        # IMAGE
         elif data_type == "IMAGE":
             temp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
             temp.write(data)
             temp.close()
-            print(f"Received IMAGE saved to: {temp.name}")
-            os.startfile(temp.name)  # auto-open image
+
+            print(f"Received IMAGE → putting into clipboard")
+
+            # Put image directly into clipboard
+            set_clipboard_image(temp.name)
+
+            # Optional: delete file
+            os.remove(temp.name)
 
         conn.close()
 
