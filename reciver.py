@@ -1,7 +1,7 @@
 import socket
 import pyperclip
 
-HOST = "0.0.0.0"
+HOST = "192.168.1.44"
 PORT = 5000
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
