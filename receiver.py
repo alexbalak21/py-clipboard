@@ -37,6 +37,7 @@ def start_receiver():
         conn, addr = server.accept()
         print(f"Connection from {addr}")
 
+        # Read header until blank line
         header = b""
         while b"\n\n" not in header:
             header += conn.recv(1)
@@ -46,6 +47,7 @@ def start_receiver():
         data_type = lines[0].split(":")[1]
         size = int(lines[1].split(":")[1])
 
+        # Read payload
         data = b""
         while len(data) < size:
             data += conn.recv(4096)
@@ -60,7 +62,7 @@ def start_receiver():
             temp.write(data)
             temp.close()
             print(f"Received IMAGE saved to: {temp.name}")
-            os.startfile(temp.name)  # auto-open image on Windows
+            os.startfile(temp.name)  # auto-open image
 
         conn.close()
 

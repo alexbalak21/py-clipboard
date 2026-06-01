@@ -4,10 +4,14 @@ import time
 import subprocess
 import tempfile
 import os
+import hashlib
 
 BROADCAST_PORT = 6000
 receiver_ip = None
 receiver_port = None
+
+last_text = ""
+last_image_hash = None
 
 
 # ---------------------------
@@ -33,7 +37,7 @@ def discover_receiver():
 
 
 # ---------------------------
-# TRY TO GET IMAGE FROM CLIPBOARD (Windows)
+# GET IMAGE FROM CLIPBOARD
 # ---------------------------
 def get_clipboard_image():
     temp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
@@ -55,6 +59,16 @@ def get_clipboard_image():
 
     except:
         return None
+
+
+# ---------------------------
+# HASH FILE
+# ---------------------------
+def hash_file(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        h.update(f.read())
+    return h.hexdigest()
 
 
 # ---------------------------
@@ -87,20 +101,33 @@ def send_clipboard():
 
 
 # ---------------------------
-# MAIN
+# MAIN LOOP
 # ---------------------------
 discover_receiver()
 
-last_text = pyperclip.paste()
 print("Clipboard watcher running...")
 
 while True:
-    current = pyperclip.paste()
+    # Check for image
+    img_path = get_clipboard_image()
+    if img_path:
+        new_hash = hash_file(img_path)
+        os.remove(img_path)
 
-    # Always send if text changed OR image exists
-    if current != last_text or get_clipboard_image():
-        last_text = current
-        print("Detected new clipboard, sending...")
+        if new_hash != last_image_hash:
+            last_image_hash = new_hash
+            print("Detected new IMAGE clipboard, sending...")
+            send_clipboard()
+
+        time.sleep(0.3)
+        continue
+
+    # Check for text
+    current_text = pyperclip.paste()
+    if current_text != last_text:
+        last_text = current_text
+        last_image_hash = None
+        print("Detected new TEXT clipboard, sending...")
         send_clipboard()
 
-    time.sleep(0.2)
+    time.sleep(0.3)
