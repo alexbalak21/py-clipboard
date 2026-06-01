@@ -1,6 +1,6 @@
 import time
 import pyperclip
-from sender import send_clipboard
+from old.sender import send_clipboard
 
 last_text = pyperclip.paste()
 
