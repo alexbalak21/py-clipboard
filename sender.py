@@ -13,6 +13,7 @@ receiver_port = None
 last_text = ""
 last_image_hash = None
 
+# WORKING WITH TEXT & IMAGES
 
 # ---------------------------
 # DISCOVER RECEIVER

@@ -9,6 +9,7 @@ HOST = "0.0.0.0"
 PORT = 5000
 BROADCAST_PORT = 6000
 
+# WORKING WITH TEXT & IMAGES
 
 # ---------------------------
 # UDP BROADCAST THREAD
