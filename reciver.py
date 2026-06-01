@@ -6,14 +6,25 @@ PORT = 5000
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind((HOST, PORT))
-server.listen(1)
+server.listen(5)
 
 print("Clipboard Host running...")
 
 while True:
     conn, addr = server.accept()
-    data = conn.recv(4096).decode("utf-8")
-    if data:
-        pyperclip.copy(data)
-        print(f"Received clipboard: {data}")
+    print(f"Connection from {addr}")
+
+    chunks = []
+    while True:
+        data = conn.recv(4096)
+        if not data:
+            break
+        chunks.append(data)
+
+    text = b"".join(chunks).decode("utf-8", errors="ignore")
+
+    if text:
+        pyperclip.copy(text)
+        print(f"Received clipboard: {text}")
+
     conn.close()
